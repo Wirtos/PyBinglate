@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="PyBinglate",
-    version="0.1",
+    version="0.2",
     author="Wirtos_new",
     author_email="Wirtos.new@gmail.com",
     description="Bing translator client for python",
@@ -11,6 +11,7 @@ setuptools.setup(
     project_urls={
         "Source Code": "https://github.com/Wirtos/PyBinglate",
     },
+    install_requires=['requests'],
     keywords="bing translator translation microsoft",
     classifiers=[
         "Programming Language :: Python :: 3",
