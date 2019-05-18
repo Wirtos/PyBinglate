@@ -119,14 +119,27 @@ error_messages = {
 
 class BingTranslator:
     def __init__(self, timeout=10.0):
+        """
+        :param timeout: try to connect for x seconds without raising error
+        """
         self._session = requests.session()
         self.timeout = timeout
 
     def detect_language(self, text: str) -> str:
+        """
+        :param str text:
+        :return: str detected language from PyBinglate.LANGUAGES
+        """
         detected_lang = self._session.post('https://www.bing.com/tdetect', data={'text': text}).text
         return detected_lang
 
     def translate(self, text: str, dest: str, src: str = None) -> str:
+        """
+        :param str text:
+        :param str dest: language from PyBinglate.LANGUAGES
+        :param str src: (optional) language from PyBinglate.LANGUAGES
+        :return str: translated string
+        """
         src = None if src in ('auto', None) else src
         text = _list_strip(text, EMPTY_CHARS)
 
