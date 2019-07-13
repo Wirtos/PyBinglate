@@ -1,5 +1,5 @@
 import requests
-from typing import Sequence
+from typing import Sequence, Union
 import re
 
 
@@ -84,7 +84,6 @@ LANGUAGES = {
     'te': 'Telugu',
     'th': 'Thai',
     'tlh': 'Klingon',
-    'tlh-Qaak': 'Klingon (plqaD)',
     'to': 'Tongan',
     'tr': 'Turkish',
     'ty': 'Tahitian',
@@ -93,8 +92,8 @@ LANGUAGES = {
     'vi': 'Vietnamese',
     'yua': 'Yucatec Maya',
     'yue': 'Cantonese (Traditional)',
-    'zh-CHS': 'Chinese (Simplified)',
-    'zh-CHT': 'Chinese (Traditional)'
+    'zh-Hans': 'Chinese Simplified',
+    'zh-Hant': 'Chinese Traditional'
 }
 
 EMPTY_CHARS = (
@@ -130,17 +129,20 @@ class BingTranslator:
         :param str text:
         :return: str detected language from PyBinglate.LANGUAGES
         """
-        detected_lang = self._session.post('https://www.bing.com/tdetect', data={'text': text}).text
-        return detected_lang
 
-    def translate(self, text: str, dest: str, src: str = None) -> str:
+        return self._session.post('https://www.bing.com/ttranslatev3',
+                                  data={'text': text, 'fromLang': 'auto-detect', 'to': 'en'}
+                                  ).json()[0]['detectedLanguage']['language']
+
+    def translate(self, text: str, dest: str, src: str = None, raw=False) -> Union[str, dict]:
         """
         :param str text:
         :param str dest: language from PyBinglate.LANGUAGES
         :param str src: (optional) language from PyBinglate.LANGUAGES
+        :param bool raw: (optional) return dict of response instead of string translation
         :return str: translated string
         """
-        src = None if src in ('auto', None) else src
+        src = None if src in ('auto', 'auto-detect', None) else src
         text = _list_strip(text, EMPTY_CHARS)
 
         if dest not in LANGUAGES:
@@ -156,16 +158,15 @@ class BingTranslator:
             raise ValueError(err)
 
         if src is not None:
-            req = self._session.post('https://www.bing.com/ttranslate',
-                                     data={'text': text, 'from': src, 'to': dest}, timeout=self.timeout)
+            req = self._session.post('https://www.bing.com/ttranslatev3',
+                                     data={'text': text, 'fromLang': src, 'to': dest}, timeout=self.timeout)
         else:
-            src = self.detect_language(text)
-            req = self._session.post('https://www.bing.com/ttranslate',
-                                     data={'text': text, 'from': src, 'to': dest})
+            req = self._session.post('https://www.bing.com/ttranslatev3',
+                                     data={'text': text, 'fromLang': 'auto-detect', 'to': dest})
 
         resp = req.json()
-        status_code = resp['statusCode']
+        status_code = req.status_code
         if status_code != 200:
             msg = error_messages.get(status_code)
             raise msg if msg else BingError('Unknown error: [{}]'.format(status_code))
-        return resp['translationResponse']
+        return resp[0]['translations'][0]['text'] if not raw else resp
