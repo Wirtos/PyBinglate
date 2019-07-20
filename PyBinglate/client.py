@@ -1,33 +1,6 @@
 import requests
-from typing import Sequence, Union
-import re
-
-
-def _list_lstrip(s: str, args: Sequence[str]) -> str:
-    match = re.finditer(r'|'.join(re.escape(i) for i in args), s)
-    start = 0
-    for i in match:
-        if i.span()[0] == start:
-            start = i.span()[1]
-        else:
-            break
-    return s[start:]
-
-
-def _list_rstrip(s: str, args: Sequence[str]) -> str:
-    match = re.finditer(r'|'.join(re.escape(i[::-1]) for i in args), s[::-1])
-    end = 0
-    for i in match:
-        if i.span()[0] == end:
-            end = i.span()[1]
-        else:
-            break
-    return s[:-end] if end != 0 else s
-
-
-def _list_strip(s: str, args: Sequence[str]) -> str:
-    return _list_rstrip(_list_lstrip(s, args), args)
-
+from typing import Union
+from PyBinglate.utils import _list_strip
 
 LANGUAGES = {
     'af': 'Afrikaans',
@@ -164,9 +137,48 @@ class BingTranslator:
             req = self._session.post('https://www.bing.com/ttranslatev3',
                                      data={'text': text, 'fromLang': 'auto-detect', 'to': dest})
 
-        resp = req.json()
-        status_code = req.status_code
-        if status_code != 200:
-            msg = error_messages.get(status_code)
-            raise msg if msg else BingError('Unknown error: [{}]'.format(status_code))
-        return resp[0]['translations'][0]['text'] if not raw else resp
+        if req.status_code != 200:
+            req.raise_for_status()
+
+        else:
+            resp = req.json()
+            if isinstance(resp, dict) and resp.get('statusCode'):
+                error_msg = error_messages.get(resp['statusCode'])
+                raise error_msg if error_msg else BingError('Unknown error: [{}]'.format(resp['statusCode']))
+            return resp[0]['translations'][0]['text'] if not raw else resp
+
+    def lookup(self, text: str, dest: str, src: str) -> list:
+        """
+        :param str text:
+        :param str dest: language from PyBinglate.LANGUAGES
+        :param str src: language from PyBinglate.LANGUAGES
+        :return list: lookup list response
+        """
+        text = _list_strip(text, EMPTY_CHARS)
+
+        if dest not in LANGUAGES:
+            raise ValueError('Invalid dest value: {!r}'.format(dest))
+
+        elif src not in LANGUAGES if src is not None else False:
+            raise ValueError('Invalid src value: {!r}'.format(src))
+
+        if not text:
+            raise ValueError('Text cannot be empty')
+
+        if src is not None:
+            req = self._session.post('https://www.bing.com/tlookupv3',
+                                     data={'text': text, 'from': src, 'to': dest}, timeout=self.timeout)
+        else:
+            req = self._session.post('https://www.bing.com/tlookupv3',
+                                     data={'text': text, 'from': 'auto-detect', 'to': dest})
+
+        if req.status_code != 200:
+            req.raise_for_status()
+
+        else:
+            resp = req.json()
+            if isinstance(resp, dict) and resp.get('statusCode'):
+                error_msg = error_messages.get(resp['statusCode'])
+                raise error_msg if error_msg else BingError('Unknown error: [{}]'.format(resp['statusCode']))
+            else:
+                return resp
