@@ -135,7 +135,7 @@ class BingTranslator:
                                      data={'text': text, 'fromLang': src, 'to': dest}, timeout=self.timeout)
         else:
             req = self._session.post('https://www.bing.com/ttranslatev3',
-                                     data={'text': text, 'fromLang': 'auto-detect', 'to': dest})
+                                     data={'text': text, 'fromLang': 'auto-detect', 'to': dest}, timeout=self.timeout)
 
         if req.status_code != 200:
             req.raise_for_status()
