@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="PyBinglate",
-    version="0.2.61",
+    version="0.2.7",
     author="Wirtos_new",
     author_email="Wirtos.new@gmail.com",
     description="Bing translator client for python",
