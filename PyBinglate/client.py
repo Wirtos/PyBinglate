@@ -95,6 +95,7 @@ class BingTranslator:
         :param timeout: try to connect for x seconds without raising error
         """
         self._session = requests.session()
+        del self._session.headers['User-Agent']
         self.timeout = timeout
 
     def detect_language(self, text: str) -> str:
